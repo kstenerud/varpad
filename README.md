@@ -24,6 +24,13 @@ Specification
 
 
 
+Implementations
+---------------
+
+* [Go implementation](https://github.com/kstenerud/go-varpad)
+
+
+
 License
 -------
 
