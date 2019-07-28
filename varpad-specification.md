@@ -20,11 +20,15 @@ Features
 Encoding Process
 ----------------
 
-The count of padding bytes is encoded both at the beginning of the padding data as a [VLQ](https://github.com/kstenerud/vlq/blob/master/vlq-specification.md), and at the end of the padded data as a [reverse VLQ](https://github.com/kstenerud/vlq/blob/master/vlq-specification.md#reverse-vlq). All intervening bytes are set to the same value as the last byte of the normal (not reverse) VLQ encoded value.
+The count of padding bytes is encoded both at the beginning of the padding data as a [RVLQ](https://github.com/kstenerud/vlq/blob/master/vlq-specification.md), and at the end of the padded data as a RVLQ stored in reversed byte order. All intervening bytes are set to the same value as the last byte of the normal (not reversed) RVLQ encoded value.
 
-    [byte count (normal VLQ)] [padding bytes] [byte count (reverse VLQ)]
+    [byte count (RVLQ)]  [padding bytes]  [byte count (reversed RVLQ)]
 
-Padding is always added, even if the message length is already a multiple of the required padding modulus (and would thus normally not need padding). This ensures that every message will always contain a padding field, the length of which can be found by inspecting the last byte of a (message + padding) payload, or the first byte of a (padding + message) payload. You could of course use an external bit field that determines the presence of the padding field in order to get around this edge case.
+Example: 300 bytes of padding
+
+    [82 2c]  [2c 2c ... 2c 2c]  [2c 82]
+
+Padding is always added, even if the message length is already a multiple of the required padding modulus (and would thus normally not need padding). This ensures that every message will always contain a padding field, the length of which can be found by inspecting the last byte of a (message + padding) payload, or the first byte of a (padding + message) payload. You could of course use an external bit flag value that determines the presence of the padding field in order to get around this edge case.
 
 
 ### Example 1
@@ -42,20 +46,20 @@ For padding counts less than 128, varpad behaves exactly like [PKCS#7](http://to
 
 ### Example 2
 
-Padding counts greater than 127 look a little different due to the [VLQ](https://github.com/kstenerud/vlq/blob/master/vlq-specification.md) encoding:
+Padding counts 128 and greater look a little different due to the [RVLQ](https://github.com/kstenerud/vlq/blob/master/vlq-specification.md) encoding:
 
 | Bytes                      | Padding |
 | -------------------------- | ------- |
 | `[81 00` `00`x124 `00 81]` |     128 |
 
-The padding byte count 128 (0x80) encodes to the VLQ `[81 00]`, which is placed at the beginning of the padding sequence, and also at the end of the sequence in reversed order. The last byte (0x00) of the VLQ encoded byte count field is used to fill the middle of the padding sequence.
+The padding byte count 128 (0x80) encodes to the RVLQ `[81 00]`, which is placed at the beginning of the padding sequence, and also at the end of the sequence in reversed byte order. The last byte (0x00) of the RVLQ encoded byte count field is used to fill the middle of the padding sequence.
 
 
 | Bytes                       | Padding |
 | --------------------------- | ------- |
 | `[92 03` `03`x2303 `03 92]` |    2307 |
 
-The padding byte count 2307 (0x903) encodes to the VLQ `[92 03]`. The last byte (0x03) of the VLQ encoded byte count field is used to fill the middle of the padding sequence.
+The padding byte count 2307 (0x903) encodes to the RVLQ `[92 03]`. The last byte (0x03) of the RVLQ encoded byte count field is used to fill the middle of the padding sequence.
 
 
 
